@@ -8,8 +8,12 @@ func SetupRoutes(store Store) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Feature flag endpoints
-	mux.HandleFunc("/api/v1/flags/get", GetFlagHandler(store))
-	mux.HandleFunc("/api/v1/flags/create", AddFlagHandler(store))
+	mux.HandleFunc("/flags/get", GetFlagHandler(store))
+	mux.HandleFunc("/flags/create", AddFlagHandler(store))
+	mux.HandleFunc("/flags/enable", EnableFlagHandler(store))
+	mux.HandleFunc("/flags/all", GetAllFlagsHandler(store))
+	mux.HandleFunc("/flags/delete", DeleteFlagHandler(store))
+	mux.HandleFunc("/flags/reset", ResetFlagsHandler(store))
 
 	// Health check endpoint
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
