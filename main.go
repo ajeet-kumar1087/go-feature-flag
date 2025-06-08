@@ -1,19 +1,18 @@
 package main
 
 import (
-	"net/http"
+	"log"
 
 	"github.com/ajeet-kumar1087/go-feature-flag/featureflag"
 )
 
 func main() {
-	// Initialize Redis store
-	store := featureflag.NewRedisStore("localhost:6379")
+	cfg := featureflag.Config{
+		RedisAddr: "localhost:6379",
+		Port:      8080,
+	}
 
-	// Setup HTTP routes
-	mux := featureflag.SetupRoutes(store)
-
-	// Start the HTTP server
-	http.ListenAndServe(":8080", mux)
-
+	if err := featureflag.New(cfg); err != nil {
+		log.Fatalf("Failed to start feature flag service: %v", err)
+	}
 }
