@@ -1,4 +1,4 @@
-module github.com/ajeet-kumar1087/featureflag
+module github.com/ajeet-kumar1087/go-feature-flag
 
 go 1.23.3
 
