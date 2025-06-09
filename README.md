@@ -71,6 +71,12 @@ type Config struct {
 - Go 1.20 or higher
 - Redis 6.0 or higher
 
+## Testing
+Ensure Redis is running locally before running tests:
+```bash
+brew services start redis  # Start Redis on MacOS
+go test -v ./featureflag  # Run tests
+```
 ## Contributing
 
 1. Fork the repository
