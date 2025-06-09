@@ -3,46 +3,44 @@ package featureflag
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
-func GetFlagHandler(store Store) http.HandlerFunc {
+func GetFlagHandler(store FlagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
+		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		var input struct {
-			Key string `json:"key"`
-		}
-
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			http.Error(w, "invalid input", http.StatusBadRequest)
+		key := strings.TrimPrefix(r.URL.Path, "/flags/")
+		key = strings.TrimSuffix(key, "/")
+		if key == "" {
+			http.Error(w, "Missing flag key in URL path", http.StatusBadRequest)
 			return
 		}
 
-		if input.Key == "" {
-			http.Error(w, "missing key", http.StatusBadRequest)
-			return
-		}
-
-		flag, err := store.IsEnabled(input.Key)
+		flag, err := store.Get(r.Context(), key)
 		if err != nil {
-			http.Error(w, "Error retrieving flag", http.StatusInternalServerError)
+			http.Error(w, "Error retrieving flag: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		json.NewEncoder(w).Encode(flag)
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(flag); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		}
 	}
 }
 
-func AddFlagHandler(store Store) http.HandlerFunc {
+func SetFlagHandler(store FlagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var flag FeatureFlag
 		if err := json.NewDecoder(r.Body).Decode(&flag); err != nil {
 			http.Error(w, "invalid input", http.StatusBadRequest)
 			return
 		}
-		if err := store.Create(flag); err != nil {
+		if err := store.Set(r.Context(), flag); err != nil {
 			http.Error(w, "error setting flag", http.StatusInternalServerError)
 			return
 		}
@@ -50,14 +48,14 @@ func AddFlagHandler(store Store) http.HandlerFunc {
 	}
 }
 
-func EnableFlagHandler(store Store) http.HandlerFunc {
+func EnableFlagHandler(store FlagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var flag FeatureFlag
 		if err := json.NewDecoder(r.Body).Decode(&flag); err != nil {
 			http.Error(w, "invalid input", http.StatusBadRequest)
 			return
 		}
-		if err := store.Enable(flag); err != nil {
+		if err := store.Set(r.Context(), flag); err != nil {
 			http.Error(w, "error enabling flag", http.StatusInternalServerError)
 			return
 		}
@@ -65,7 +63,7 @@ func EnableFlagHandler(store Store) http.HandlerFunc {
 	}
 }
 
-func GetAllFlagsHandler(store Store) http.HandlerFunc {
+func GetAllFlagsHandler(store FlagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -81,46 +79,26 @@ func GetAllFlagsHandler(store Store) http.HandlerFunc {
 	}
 }
 
-func DeleteFlagHandler(store Store) http.HandlerFunc {
+func DeleteFlagHandler(store FlagStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
+		if r.Method != http.MethodDelete {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		var input struct {
-			Key string `json:"key"`
-		}
-
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			http.Error(w, "invalid input", http.StatusBadRequest)
+		key := strings.TrimPrefix(r.URL.Path, "/flags/")
+		key = strings.TrimSuffix(key, "/")
+		if key == "" {
+			http.Error(w, "Missing flag key in URL", http.StatusBadRequest)
 			return
 		}
 
-		if input.Key == "" {
-			http.Error(w, "missing key", http.StatusBadRequest)
+		if err := store.Delete(r.Context(), key); err != nil {
+			http.Error(w, "Error deleting flag: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if err := store.Delete(input.Key); err != nil {
-			http.Error(w, "Error deleting flag", http.StatusInternalServerError)
-			return
-		}
-		json.NewEncoder(w).Encode(map[string]string{"message": "flag deleted"})
-	}
-}
-
-func ResetFlagsHandler(store Store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		if err := store.Reset(); err != nil {
-			http.Error(w, "Error resetting flags", http.StatusInternalServerError)
-			return
-		}
-		json.NewEncoder(w).Encode(map[string]string{"message": "flags reset"})
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"message": "Flag deleted"})
 	}
 }

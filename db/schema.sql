@@ -1,0 +1,8 @@
+CREATE TABLE feature_flags (
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    key TEXT NOT NULL UNIQUE,
+    value BOOLEAN NOT NULL DEFAULT FALSE,
+    description TEXT ,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
+);
