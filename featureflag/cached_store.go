@@ -16,7 +16,7 @@ func NewCachedStore(redis *RedisStore, postgres *PostgresStore) *CachedStore {
 
 func (cs *CachedStore) Get(ctx context.Context, key string) (*FeatureFlag, error) {
 	// First, try to get the feature flag from Redis
-	flag, err := cs.redis.Get(key)
+	flag, err := cs.redis.Get(ctx, key)
 	if err != nil {
 		// Redis error - fallback to Postgres
 		flag, err = cs.postgres.Get(ctx, key)
@@ -80,7 +80,7 @@ func (cs *CachedStore) GetAll(ctx context.Context) ([]FeatureFlag, error) {
 
 // Delete a feature flag from both Redis and Postgres
 func (cs *CachedStore) Delete(ctx context.Context, key string) error {
-	err := cs.redis.Delete(key)
+	err := cs.redis.Delete(ctx, key)
 	if err != nil {
 		return err
 	}
