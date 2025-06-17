@@ -22,7 +22,7 @@ func NewRedisStore(addr string) *RedisStore {
 }
 
 // IsEnabled checks if a feature flag is enabled in Redis.
-func (rdb *RedisStore) Get(key string) (*FeatureFlag, error) {
+func (rdb *RedisStore) Get(ctx context.Context, key string) (*FeatureFlag, error) {
 	val, err := rdb.client.Get(rdb.ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
@@ -78,6 +78,6 @@ func (rdb *RedisStore) GetAll() ([]FeatureFlag, error) {
 }
 
 // Delete removes a feature flag from Redis.
-func (rdb *RedisStore) Delete(key string) error {
+func (rdb *RedisStore) Delete(ctx context.Context, key string) error {
 	return rdb.client.Del(rdb.ctx, key).Err()
 }
