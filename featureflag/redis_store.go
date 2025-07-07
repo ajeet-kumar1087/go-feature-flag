@@ -13,8 +13,13 @@ type RedisStore struct {
 	ctx    context.Context
 }
 
-func NewRedisStore(addr string) *RedisStore {
-	rdb := redis.NewClient(&redis.Options{Addr: addr})
+func NewRedisStore(cfg Config) *RedisStore {
+	opts := &redis.Options{
+		Addr:     cfg.redis.GetRedisFormatted(),
+		Password: cfg.redis.Password,
+		DB:       cfg.redis.Database, // Use the correct field name for DB index
+	}
+	rdb := redis.NewClient(opts)
 	return &RedisStore{
 		client: rdb,
 		ctx:    context.Background(),
