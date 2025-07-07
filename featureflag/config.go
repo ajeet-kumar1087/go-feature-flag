@@ -45,6 +45,10 @@ func (p *PostgresAddr) SetPostgres(addr string, port int) {
 	p.Port = port
 }
 
+func (p *PostgresAddr) GetPostgresFormatted() string {
+	return fmt.Sprintf("%s:%d", p.Addr, p.Port)
+}
+
 // NewConfig initializes a new Config with Redis and Postgres addresses.
 func NewConfig(p *PostgresAddr, r *RedisAddr) *Config {
 	return &Config{

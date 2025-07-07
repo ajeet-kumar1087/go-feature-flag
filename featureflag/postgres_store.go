@@ -9,7 +9,12 @@ type PostgresStore struct {
 	db *sql.DB
 }
 
-func NewPostgresStore(db *sql.DB) *PostgresStore {
+func NewPostgresStore(cfg Config) *PostgresStore {
+	addr := cfg.postgres.GetPostgresFormatted()
+	db, err := sql.Open("postgres", addr)
+	if err != nil {
+		panic("failed to connect to Postgres: " + err.Error())
+	}
 	return &PostgresStore{
 		db: db,
 	}
