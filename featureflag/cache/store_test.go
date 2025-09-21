@@ -5,12 +5,15 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/config"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/core"
 )
 
 // MockStore is a simple in-memory store for testing
 type MockStore struct {
 	mu          sync.RWMutex
-	flags       map[string]*FeatureFlag
+	flags       map[string]*core.FeatureFlag
 	getCalls    int
 	setCalls    int
 	deleteCalls int
@@ -18,11 +21,11 @@ type MockStore struct {
 
 func NewMockStore() *MockStore {
 	return &MockStore{
-		flags: make(map[string]*FeatureFlag),
+		flags: make(map[string]*core.FeatureFlag),
 	}
 }
 
-func (m *MockStore) Get(ctx context.Context, key string) (*FeatureFlag, error) {
+func (m *MockStore) Get(ctx context.Context, key string) (*core.FeatureFlag, error) {
 	m.mu.Lock()
 	m.getCalls++
 	flag, exists := m.flags[key]
@@ -36,7 +39,7 @@ func (m *MockStore) Get(ctx context.Context, key string) (*FeatureFlag, error) {
 	return &flagCopy, nil
 }
 
-func (m *MockStore) Set(ctx context.Context, flag FeatureFlag) error {
+func (m *MockStore) Set(ctx context.Context, flag core.FeatureFlag) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -55,11 +58,11 @@ func (m *MockStore) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-func (m *MockStore) GetAll(ctx context.Context) ([]FeatureFlag, error) {
+func (m *MockStore) GetAll(ctx context.Context) ([]core.FeatureFlag, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	flags := make([]FeatureFlag, 0, len(m.flags))
+	flags := make([]core.FeatureFlag, 0, len(m.flags))
 	for _, flag := range m.flags {
 		flags = append(flags, *flag)
 	}
@@ -76,17 +79,17 @@ func (m *MockStore) Close() error {
 
 func TestCachedStore_CacheDisabled(t *testing.T) {
 	mockStore := NewMockStore()
-	cacheConfig := CacheConfig{
+	cacheConfig := config.CacheConfig{
 		Enabled: false,
-		TTL:     Duration(5 * time.Minute),
+		TTL:     config.Duration(5 * time.Minute),
 		MaxSize: 100,
 	}
 
-	cachedStore := NewCachedStore(mockStore, cacheConfig)
+	cachedStore := NewStore(mockStore, cacheConfig)
 	defer cachedStore.Close()
 
 	ctx := context.Background()
-	flag := FeatureFlag{
+	flag := core.FeatureFlag{
 		Key:         "test-flag",
 		Enabled:     true,
 		Description: "Test flag",
@@ -116,17 +119,17 @@ func TestCachedStore_CacheDisabled(t *testing.T) {
 
 func TestCachedStore_CacheEnabled(t *testing.T) {
 	mockStore := NewMockStore()
-	cacheConfig := CacheConfig{
+	cacheConfig := config.CacheConfig{
 		Enabled: true,
-		TTL:     Duration(5 * time.Minute),
+		TTL:     config.Duration(5 * time.Minute),
 		MaxSize: 100,
 	}
 
-	cachedStore := NewCachedStore(mockStore, cacheConfig)
+	cachedStore := NewStore(mockStore, cacheConfig)
 	defer cachedStore.Close()
 
 	ctx := context.Background()
-	flag := FeatureFlag{
+	flag := core.FeatureFlag{
 		Key:         "test-flag",
 		Enabled:     true,
 		Description: "Test flag",
@@ -177,19 +180,19 @@ func TestCachedStore_CacheEnabled(t *testing.T) {
 
 func TestCachedStore_CacheInvalidationOnSet(t *testing.T) {
 	mockStore := NewMockStore()
-	cacheConfig := CacheConfig{
+	cacheConfig := config.CacheConfig{
 		Enabled: true,
-		TTL:     Duration(5 * time.Minute),
+		TTL:     config.Duration(5 * time.Minute),
 		MaxSize: 100,
 	}
 
-	cachedStore := NewCachedStore(mockStore, cacheConfig)
+	cachedStore := NewStore(mockStore, cacheConfig)
 	defer cachedStore.Close()
 
 	ctx := context.Background()
 
 	// Set initial flag
-	flag1 := FeatureFlag{
+	flag1 := core.FeatureFlag{
 		Key:         "test-flag",
 		Enabled:     false,
 		Description: "Initial flag",
@@ -209,7 +212,7 @@ func TestCachedStore_CacheInvalidationOnSet(t *testing.T) {
 	}
 
 	// Update flag
-	flag2 := FeatureFlag{
+	flag2 := core.FeatureFlag{
 		Key:         "test-flag",
 		Enabled:     true,
 		Description: "Updated flag",
@@ -236,17 +239,17 @@ func TestCachedStore_CacheInvalidationOnSet(t *testing.T) {
 
 func TestCachedStore_CacheInvalidationOnDelete(t *testing.T) {
 	mockStore := NewMockStore()
-	cacheConfig := CacheConfig{
+	cacheConfig := config.CacheConfig{
 		Enabled: true,
-		TTL:     Duration(5 * time.Minute),
+		TTL:     config.Duration(5 * time.Minute),
 		MaxSize: 100,
 	}
 
-	cachedStore := NewCachedStore(mockStore, cacheConfig)
+	cachedStore := NewStore(mockStore, cacheConfig)
 	defer cachedStore.Close()
 
 	ctx := context.Background()
-	flag := FeatureFlag{
+	flag := core.FeatureFlag{
 		Key:         "test-flag",
 		Enabled:     true,
 		Description: "Test flag",
@@ -287,19 +290,19 @@ func TestCachedStore_CacheInvalidationOnDelete(t *testing.T) {
 
 func TestCachedStore_GetAll(t *testing.T) {
 	mockStore := NewMockStore()
-	cacheConfig := CacheConfig{
+	cacheConfig := config.CacheConfig{
 		Enabled: true,
-		TTL:     Duration(5 * time.Minute),
+		TTL:     config.Duration(5 * time.Minute),
 		MaxSize: 100,
 	}
 
-	cachedStore := NewCachedStore(mockStore, cacheConfig)
+	cachedStore := NewStore(mockStore, cacheConfig)
 	defer cachedStore.Close()
 
 	ctx := context.Background()
 
 	// Set multiple flags
-	flags := []FeatureFlag{
+	flags := []core.FeatureFlag{
 		{Key: "flag-1", Enabled: true, Description: "Flag 1"},
 		{Key: "flag-2", Enabled: false, Description: "Flag 2"},
 		{Key: "flag-3", Enabled: true, Description: "Flag 3"},
@@ -341,13 +344,13 @@ func TestCachedStore_GetAll(t *testing.T) {
 
 func TestCachedStore_HealthCheck(t *testing.T) {
 	mockStore := NewMockStore()
-	cacheConfig := CacheConfig{
+	cacheConfig := config.CacheConfig{
 		Enabled: true,
-		TTL:     Duration(5 * time.Minute),
+		TTL:     config.Duration(5 * time.Minute),
 		MaxSize: 100,
 	}
 
-	cachedStore := NewCachedStore(mockStore, cacheConfig)
+	cachedStore := NewStore(mockStore, cacheConfig)
 	defer cachedStore.Close()
 
 	ctx := context.Background()
@@ -359,17 +362,17 @@ func TestCachedStore_HealthCheck(t *testing.T) {
 
 func TestCachedStore_TTLExpiration(t *testing.T) {
 	mockStore := NewMockStore()
-	cacheConfig := CacheConfig{
+	cacheConfig := config.CacheConfig{
 		Enabled: true,
-		TTL:     Duration(100 * time.Millisecond),
+		TTL:     config.Duration(100 * time.Millisecond),
 		MaxSize: 100,
 	}
 
-	cachedStore := NewCachedStore(mockStore, cacheConfig)
+	cachedStore := NewStore(mockStore, cacheConfig)
 	defer cachedStore.Close()
 
 	ctx := context.Background()
-	flag := FeatureFlag{
+	flag := core.FeatureFlag{
 		Key:         "test-flag",
 		Enabled:     true,
 		Description: "Test flag",

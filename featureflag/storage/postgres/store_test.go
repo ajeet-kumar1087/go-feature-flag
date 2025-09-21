@@ -9,12 +9,14 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/config"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/core"
 )
 
 func TestNewPostgresStore(t *testing.T) {
 	tests := []struct {
 		name        string
-		config      *PostgresConfig
+		config      *config.PostgresConfig
 		expectError bool
 		errorMsg    string
 	}{
@@ -26,7 +28,7 @@ func TestNewPostgresStore(t *testing.T) {
 		},
 		{
 			name: "invalid config - empty host",
-			config: &PostgresConfig{
+			config: &config.PostgresConfig{
 				Host:     "",
 				Port:     5432,
 				Database: "test",
@@ -37,7 +39,7 @@ func TestNewPostgresStore(t *testing.T) {
 		},
 		{
 			name: "invalid config - invalid port",
-			config: &PostgresConfig{
+			config: &config.PostgresConfig{
 				Host:     "localhost",
 				Port:     0,
 				Database: "test",
@@ -48,7 +50,7 @@ func TestNewPostgresStore(t *testing.T) {
 		},
 		{
 			name: "invalid config - empty database",
-			config: &PostgresConfig{
+			config: &config.PostgresConfig{
 				Host:     "localhost",
 				Port:     5432,
 				Database: "",
@@ -59,7 +61,7 @@ func TestNewPostgresStore(t *testing.T) {
 		},
 		{
 			name: "invalid config - empty username",
-			config: &PostgresConfig{
+			config: &config.PostgresConfig{
 				Host:     "localhost",
 				Port:     5432,
 				Database: "test",
@@ -72,7 +74,7 @@ func TestNewPostgresStore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store, err := NewPostgresStore(tt.config)
+			store, err := NewStore(tt.config)
 
 			if tt.expectError {
 				if err == nil {
@@ -119,7 +121,7 @@ func TestPostgresStore_Get(t *testing.T) {
 		setupMock   func()
 		expectError bool
 		errorType   error
-		expected    *FeatureFlag
+		expected    *core.FeatureFlag
 	}{
 		{
 			name:        "empty key",
@@ -137,7 +139,7 @@ func TestPostgresStore_Get(t *testing.T) {
 					WillReturnError(sql.ErrNoRows)
 			},
 			expectError: true,
-			errorType:   ErrFlagNotFound,
+			errorType:   core.ErrFlagNotFound,
 		},
 		{
 			name: "database error",
@@ -160,7 +162,7 @@ func TestPostgresStore_Get(t *testing.T) {
 					WillReturnRows(rows)
 			},
 			expectError: false,
-			expected: &FeatureFlag{
+			expected: &core.FeatureFlag{
 				Key:     "test-flag",
 				Enabled: true,
 			},
@@ -179,7 +181,7 @@ func TestPostgresStore_Get(t *testing.T) {
 					WillReturnRows(rows)
 			},
 			expectError: false,
-			expected: &FeatureFlag{
+			expected: &core.FeatureFlag{
 				Key:         "test-flag",
 				Enabled:     true,
 				Description: "Test flag description",
@@ -200,7 +202,7 @@ func TestPostgresStore_Get(t *testing.T) {
 					return
 				}
 				if tt.errorType != nil {
-					var ffErr *FeatureFlagError
+					var ffErr *core.FeatureFlagError
 					if errors.As(err, &ffErr) && !errors.Is(ffErr.Err, tt.errorType) {
 						t.Errorf("expected error type %v, got %v", tt.errorType, ffErr.Err)
 					}
@@ -247,13 +249,13 @@ func TestPostgresStore_Set(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		flag        FeatureFlag
+		flag        core.FeatureFlag
 		setupMock   func()
 		expectError bool
 	}{
 		{
 			name: "invalid flag",
-			flag: FeatureFlag{
+			flag: core.FeatureFlag{
 				Key: "", // Invalid empty key
 			},
 			setupMock:   func() {},
@@ -261,7 +263,7 @@ func TestPostgresStore_Set(t *testing.T) {
 		},
 		{
 			name: "database error",
-			flag: FeatureFlag{
+			flag: core.FeatureFlag{
 				Key:     "test-flag",
 				Enabled: true,
 			},
@@ -273,7 +275,7 @@ func TestPostgresStore_Set(t *testing.T) {
 		},
 		{
 			name: "successful set with minimal data",
-			flag: FeatureFlag{
+			flag: core.FeatureFlag{
 				Key:     "test-flag",
 				Enabled: true,
 			},
@@ -286,7 +288,7 @@ func TestPostgresStore_Set(t *testing.T) {
 		},
 		{
 			name: "successful set with full data",
-			flag: FeatureFlag{
+			flag: core.FeatureFlag{
 				Key:         "test-flag",
 				Enabled:     true,
 				Description: "Test description",
@@ -356,7 +358,7 @@ func TestPostgresStore_Delete(t *testing.T) {
 					WillReturnResult(sqlmock.NewResult(0, 0))
 			},
 			expectError: true,
-			errorType:   ErrFlagNotFound,
+			errorType:   core.ErrFlagNotFound,
 		},
 		{
 			name: "database error",
@@ -392,7 +394,7 @@ func TestPostgresStore_Delete(t *testing.T) {
 					return
 				}
 				if tt.errorType != nil {
-					var ffErr *FeatureFlagError
+					var ffErr *core.FeatureFlagError
 					if errors.As(err, &ffErr) && !errors.Is(ffErr.Err, tt.errorType) {
 						t.Errorf("expected error type %v, got %v", tt.errorType, ffErr.Err)
 					}
@@ -424,7 +426,7 @@ func TestPostgresStore_GetAll(t *testing.T) {
 		name        string
 		setupMock   func()
 		expectError bool
-		expected    []FeatureFlag
+		expected    []core.FeatureFlag
 	}{
 		{
 			name: "database error",
@@ -442,7 +444,7 @@ func TestPostgresStore_GetAll(t *testing.T) {
 					WillReturnRows(rows)
 			},
 			expectError: false,
-			expected:    []FeatureFlag{},
+			expected:    []core.FeatureFlag{},
 		},
 		{
 			name: "successful get all",
@@ -456,7 +458,7 @@ func TestPostgresStore_GetAll(t *testing.T) {
 					WillReturnRows(rows)
 			},
 			expectError: false,
-			expected: []FeatureFlag{
+			expected: []core.FeatureFlag{
 				{
 					Key:         "flag1",
 					Enabled:     true,

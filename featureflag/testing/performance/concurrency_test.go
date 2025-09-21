@@ -8,22 +8,27 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/cache"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/client"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/config"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/core"
 )
 
 // TestClient_ConcurrentIsEnabled tests concurrent IsEnabled calls
 func TestClient_ConcurrentIsEnabled(t *testing.T) {
-	config := Config{
-		Storage: StorageConfig{
+	config := config.Config{
+		Storage: config.StorageConfig{
 			Type: "memory",
 		},
-		Cache: CacheConfig{
+		Cache: config.CacheConfig{
 			Enabled: true,
-			TTL:     Duration(5 * time.Minute),
+			TTL:     config.Duration(5 * time.Minute),
 			MaxSize: 1000,
 		},
 	}
 
-	client, err := NewClient(config)
+	client, err := client.NewClient(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +39,7 @@ func TestClient_ConcurrentIsEnabled(t *testing.T) {
 	// Pre-populate with test flags
 	numFlags := 100
 	for i := 0; i < numFlags; i++ {
-		flag := FeatureFlag{
+		flag := core.FeatureFlag{
 			Key:     fmt.Sprintf("flag-%d", i),
 			Enabled: i%2 == 0,
 		}
@@ -81,18 +86,18 @@ func TestClient_ConcurrentIsEnabled(t *testing.T) {
 
 // TestClient_ConcurrentReadWrite tests concurrent reads and writes
 func TestClient_ConcurrentReadWrite(t *testing.T) {
-	config := Config{
-		Storage: StorageConfig{
+	config := config.Config{
+		Storage: config.StorageConfig{
 			Type: "memory",
 		},
-		Cache: CacheConfig{
+		Cache: config.CacheConfig{
 			Enabled: true,
-			TTL:     Duration(5 * time.Minute),
+			TTL:     config.Duration(5 * time.Minute),
 			MaxSize: 1000,
 		},
 	}
 
-	client, err := NewClient(config)
+	client, err := client.NewClient(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +108,7 @@ func TestClient_ConcurrentReadWrite(t *testing.T) {
 	// Pre-populate with test flags
 	numFlags := 50
 	for i := 0; i < numFlags; i++ {
-		flag := FeatureFlag{
+		flag := core.FeatureFlag{
 			Key:     fmt.Sprintf("flag-%d", i),
 			Enabled: false,
 		}
@@ -142,7 +147,7 @@ func TestClient_ConcurrentReadWrite(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < operationsPerGoroutine; j++ {
 				key := fmt.Sprintf("flag-%d", j%numFlags)
-				flag := FeatureFlag{
+				flag := core.FeatureFlag{
 					Key:     key,
 					Enabled: j%2 == 0,
 				}
@@ -173,7 +178,7 @@ func TestClient_ConcurrentReadWrite(t *testing.T) {
 
 // TestMemoryStore_ConcurrentOperations tests memory store thread safety
 func TestMemoryStore_ConcurrentOperations(t *testing.T) {
-	store := NewMemoryStore()
+	store := config.NewMemoryStore()
 	defer store.Close()
 
 	ctx := context.Background()
@@ -194,7 +199,7 @@ func TestMemoryStore_ConcurrentOperations(t *testing.T) {
 
 				switch j % 10 {
 				case 0, 1: // 20% writes
-					flag := FeatureFlag{
+					flag := core.FeatureFlag{
 						Key:     key,
 						Enabled: j%2 == 0,
 					}
@@ -206,7 +211,7 @@ func TestMemoryStore_ConcurrentOperations(t *testing.T) {
 				case 2: // 10% deletes
 					if err := store.Delete(ctx, key); err != nil {
 						// Delete errors are expected when flag doesn't exist
-						if !IsNotFoundError(err) {
+						if !core.IsNotFoundError(err) {
 							atomic.AddInt64(&errorCount, 1)
 						}
 					} else {
@@ -216,7 +221,7 @@ func TestMemoryStore_ConcurrentOperations(t *testing.T) {
 					_, err := store.Get(ctx, key)
 					if err != nil {
 						// Read errors are expected when flag doesn't exist
-						if !IsNotFoundError(err) {
+						if !core.IsNotFoundError(err) {
 							atomic.AddInt64(&errorCount, 1)
 						}
 					} else {
@@ -239,7 +244,7 @@ func TestMemoryStore_ConcurrentOperations(t *testing.T) {
 
 // TestCache_ConcurrentOperations tests cache thread safety
 func TestCache_ConcurrentOperations(t *testing.T) {
-	cache := NewCache(1000, 5*time.Minute)
+	cache := cache.NewCache(1000, 5*time.Minute)
 	defer cache.Close()
 
 	numGoroutines := runtime.NumCPU() * 4
@@ -258,7 +263,7 @@ func TestCache_ConcurrentOperations(t *testing.T) {
 				key := fmt.Sprintf("flag-%d", j%numFlags)
 
 				if j%5 == 0 { // 20% writes
-					flag := &FeatureFlag{
+					flag := &core.FeatureFlag{
 						Key:     key,
 						Enabled: j%2 == 0,
 					}
@@ -282,18 +287,18 @@ func TestCache_ConcurrentOperations(t *testing.T) {
 
 // TestClient_ConcurrentClose tests that client can be safely closed during concurrent operations
 func TestClient_ConcurrentClose(t *testing.T) {
-	config := Config{
-		Storage: StorageConfig{
+	config := config.Config{
+		Storage: config.StorageConfig{
 			Type: "memory",
 		},
-		Cache: CacheConfig{
+		Cache: config.CacheConfig{
 			Enabled: true,
-			TTL:     Duration(5 * time.Minute),
+			TTL:     config.Duration(5 * time.Minute),
 			MaxSize: 1000,
 		},
 	}
 
-	client, err := NewClient(config)
+	client, err := client.NewClient(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -302,7 +307,7 @@ func TestClient_ConcurrentClose(t *testing.T) {
 
 	// Pre-populate with test flags
 	for i := 0; i < 10; i++ {
-		flag := FeatureFlag{
+		flag := core.FeatureFlag{
 			Key:     fmt.Sprintf("flag-%d", i),
 			Enabled: i%2 == 0,
 		}
@@ -343,18 +348,18 @@ func TestClient_RaceConditions(t *testing.T) {
 		t.Skip("Skipping race condition test in short mode")
 	}
 
-	config := Config{
-		Storage: StorageConfig{
+	config := config.Config{
+		Storage: config.StorageConfig{
 			Type: "memory",
 		},
-		Cache: CacheConfig{
+		Cache: config.CacheConfig{
 			Enabled: true,
-			TTL:     Duration(1 * time.Second), // Short TTL to test expiration races
+			TTL:     config.Duration(1 * time.Second), // Short TTL to test expiration races
 			MaxSize: 100,
 		},
 	}
 
-	client, err := NewClient(config)
+	client, err := client.NewClient(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +385,7 @@ func TestClient_RaceConditions(t *testing.T) {
 				case 0, 1, 2: // 50% IsEnabled calls
 					client.IsEnabled(ctx, key)
 				case 3: // 16.7% SetFlag calls
-					flag := FeatureFlag{
+					flag := core.FeatureFlag{
 						Key:     key,
 						Enabled: operationCount%2 == 0,
 					}
@@ -401,7 +406,7 @@ func TestClient_RaceConditions(t *testing.T) {
 
 // TestCache_ConcurrentTTLExpiration tests concurrent access during TTL expiration
 func TestCache_ConcurrentTTLExpiration(t *testing.T) {
-	cache := NewCache(100, 50*time.Millisecond) // Very short TTL
+	cache := cache.NewCache(100, 50*time.Millisecond) // Very short TTL
 	defer cache.Close()
 
 	numGoroutines := 10
@@ -409,7 +414,7 @@ func TestCache_ConcurrentTTLExpiration(t *testing.T) {
 
 	// Pre-populate cache
 	for i := 0; i < 20; i++ {
-		flag := &FeatureFlag{
+		flag := &core.FeatureFlag{
 			Key:     fmt.Sprintf("flag-%d", i),
 			Enabled: i%2 == 0,
 		}
@@ -425,7 +430,7 @@ func TestCache_ConcurrentTTLExpiration(t *testing.T) {
 
 				if j%10 == 0 {
 					// Refresh some items
-					flag := &FeatureFlag{
+					flag := &core.FeatureFlag{
 						Key:     key,
 						Enabled: j%2 == 0,
 					}
@@ -451,18 +456,18 @@ func TestClient_StressTest(t *testing.T) {
 		t.Skip("Skipping stress test in short mode")
 	}
 
-	config := Config{
-		Storage: StorageConfig{
+	config := config.Config{
+		Storage: config.StorageConfig{
 			Type: "memory",
 		},
-		Cache: CacheConfig{
+		Cache: config.CacheConfig{
 			Enabled: true,
-			TTL:     Duration(2 * time.Second),
+			TTL:     config.Duration(2 * time.Second),
 			MaxSize: 500,
 		},
 	}
 
-	client, err := NewClient(config)
+	client, err := client.NewClient(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -486,7 +491,7 @@ func TestClient_StressTest(t *testing.T) {
 
 				switch operations % 20 {
 				case 0, 1: // 10% writes
-					flag := FeatureFlag{
+					flag := core.FeatureFlag{
 						Key:     key,
 						Enabled: operations%2 == 0,
 					}

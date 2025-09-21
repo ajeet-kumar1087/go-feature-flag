@@ -6,62 +6,65 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/config"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/core"
 )
 
 func TestErrorTypes(t *testing.T) {
 	tests := []struct {
 		name          string
 		err           error
-		expectedType  ErrorType
+		expectedType  core.ErrorType
 		expectedRetry bool
 	}{
 		{
 			name:          "flag not found",
-			err:           ErrFlagNotFound,
-			expectedType:  ErrorTypeNotFound,
+			err:           core.ErrFlagNotFound,
+			expectedType:  core.ErrorTypeNotFound,
 			expectedRetry: false,
 		},
 		{
 			name:          "invalid config",
-			err:           ErrInvalidConfig,
-			expectedType:  ErrorTypeValidation,
+			err:           core.ErrInvalidConfig,
+			expectedType:  core.ErrorTypeValidation,
 			expectedRetry: false,
 		},
 		{
 			name:          "storage failure",
-			err:           ErrStorageFailure,
-			expectedType:  ErrorTypeStorage,
+			err:           core.ErrStorageFailure,
+			expectedType:  core.ErrorTypeStorage,
 			expectedRetry: true,
 		},
 		{
 			name:          "connection failure",
-			err:           ErrConnectionFailure,
-			expectedType:  ErrorTypeConnection,
+			err:           core.ErrConnectionFailure,
+			expectedType:  core.ErrorTypeConnection,
 			expectedRetry: true,
 		},
 		{
 			name:          "timeout",
-			err:           ErrTimeout,
-			expectedType:  ErrorTypeTimeout,
+			err:           core.ErrTimeout,
+			expectedType:  core.ErrorTypeTimeout,
 			expectedRetry: true,
 		},
 		{
 			name:          "rate limited",
-			err:           ErrRateLimited,
-			expectedType:  ErrorTypeRateLimit,
+			err:           core.ErrRateLimited,
+			expectedType:  core.ErrorTypeRateLimit,
 			expectedRetry: true,
 		},
 		{
 			name:          "client closed",
-			err:           ErrClientClosed,
-			expectedType:  ErrorTypeClient,
+			err:           core.ErrClientClosed,
+			expectedType:  core.ErrorTypeClient,
 			expectedRetry: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ffErr := NewError("test", "test-key", tt.err)
+			ffErr := core.NewError("test", "test-key", tt.err)
 
 			if ffErr.GetType() != tt.expectedType {
 				t.Errorf("expected error type %v, got %v", tt.expectedType, ffErr.GetType())
@@ -91,10 +94,10 @@ func TestErrorWithContext(t *testing.T) {
 		"operation":  "get",
 	}
 
-	ffErr := NewErrorWithContext("test", "test-key", ErrStorageFailure, context)
+	ffErr := core.NewErrorWithContext("test", "test-key", core.ErrStorageFailure, context)
 
-	if ffErr.GetType() != ErrorTypeStorage {
-		t.Errorf("expected error type %v, got %v", ErrorTypeStorage, ffErr.GetType())
+	if ffErr.GetType() != core.ErrorTypeStorage {
+		t.Errorf("expected error type %v, got %v", core.ErrorTypeStorage, ffErr.GetType())
 	}
 
 	ctx := ffErr.GetContext()
@@ -120,29 +123,29 @@ func TestIsNotFoundErrorObservability(t *testing.T) {
 		},
 		{
 			name:     "direct not found error",
-			err:      ErrFlagNotFound,
+			err:      core.ErrFlagNotFound,
 			expected: true,
 		},
 		{
 			name:     "wrapped not found error",
-			err:      NewError("test", "key", ErrFlagNotFound),
+			err:      core.NewError("test", "key", core.ErrFlagNotFound),
 			expected: true,
 		},
 		{
 			name:     "other error",
-			err:      ErrStorageFailure,
+			err:      core.ErrStorageFailure,
 			expected: false,
 		},
 		{
 			name:     "wrapped other error",
-			err:      NewError("test", "key", ErrStorageFailure),
+			err:      core.NewError("test", "key", core.ErrStorageFailure),
 			expected: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := IsNotFoundError(tt.err)
+			result := core.IsNotFoundError(tt.err)
 			if result != tt.expected {
 				t.Errorf("expected %v, got %v", tt.expected, result)
 			}
@@ -163,29 +166,29 @@ func TestIsRetryableError(t *testing.T) {
 		},
 		{
 			name:     "retryable error",
-			err:      ErrConnectionFailure,
+			err:      core.ErrConnectionFailure,
 			expected: true,
 		},
 		{
 			name:     "wrapped retryable error",
-			err:      NewError("test", "key", ErrTimeout),
+			err:      core.NewError("test", "key", core.ErrTimeout),
 			expected: true,
 		},
 		{
 			name:     "non-retryable error",
-			err:      ErrFlagNotFound,
+			err:      core.ErrFlagNotFound,
 			expected: false,
 		},
 		{
 			name:     "wrapped non-retryable error",
-			err:      NewError("test", "key", ErrInvalidFlag),
+			err:      core.NewError("test", "key", core.ErrInvalidFlag),
 			expected: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := IsRetryableError(tt.err)
+			result := core.IsRetryableError(tt.err)
 			if result != tt.expected {
 				t.Errorf("expected %v, got %v", tt.expected, result)
 			}
@@ -238,7 +241,7 @@ func TestDefaultMetricsCollector(t *testing.T) {
 	metrics.RecordCacheEviction(ctx, "test-flag")
 
 	metrics.RecordStorageOperation(ctx, "get", true, 500*time.Microsecond)
-	metrics.RecordError(ctx, "test", ErrorTypeStorage)
+	metrics.RecordError(ctx, "test", core.ErrorTypeStorage)
 
 	// Get metrics snapshot
 	snapshot := metrics.GetMetrics()
@@ -280,15 +283,15 @@ func TestDefaultMetricsCollector(t *testing.T) {
 		t.Errorf("expected 1 storage operation, got %d", snapshot.StorageOperations)
 	}
 
-	if snapshot.ErrorsByType[ErrorTypeStorage] != 1 {
-		t.Errorf("expected 1 storage error, got %d", snapshot.ErrorsByType[ErrorTypeStorage])
+	if snapshot.ErrorsByType[core.ErrorTypeStorage] != 1 {
+		t.Errorf("expected 1 storage error, got %d", snapshot.ErrorsByType[core.ErrorTypeStorage])
 	}
 
-	if snapshot.AverageFlagCheckDuration == 0 {
+	if snapshot.AvgFlagCheckDuration == 0 {
 		t.Error("expected non-zero average flag check duration")
 	}
 
-	if snapshot.AverageStorageDuration == 0 {
+	if snapshot.AvgStorageDuration == 0 {
 		t.Error("expected non-zero average storage duration")
 	}
 }
@@ -308,7 +311,7 @@ func TestNoOpMetricsCollector(t *testing.T) {
 	metrics.RecordCacheEviction(ctx, "test-flag")
 
 	metrics.RecordStorageOperation(ctx, "get", true, 500*time.Microsecond)
-	metrics.RecordError(ctx, "test", ErrorTypeStorage)
+	metrics.RecordError(ctx, "test", core.ErrorTypeStorage)
 
 	// Get metrics snapshot - should be empty
 	snapshot := metrics.GetMetrics()
@@ -325,17 +328,17 @@ func TestNoOpMetricsCollector(t *testing.T) {
 func TestObservabilityConfig(t *testing.T) {
 	tests := []struct {
 		name        string
-		config      ObservabilityConfig
+		config      config.ObservabilityConfig
 		expectError bool
 	}{
 		{
 			name: "valid config",
-			config: ObservabilityConfig{
-				Logging: LoggingConfig{
+			config: config.ObservabilityConfig{
+				Logging: config.LoggingConfig{
 					Enabled: true,
 					Level:   "info",
 				},
-				Metrics: MetricsConfig{
+				Metrics: config.MetricsConfig{
 					Enabled: true,
 				},
 			},
@@ -343,12 +346,12 @@ func TestObservabilityConfig(t *testing.T) {
 		},
 		{
 			name: "invalid log level",
-			config: ObservabilityConfig{
-				Logging: LoggingConfig{
+			config: config.ObservabilityConfig{
+				Logging: config.LoggingConfig{
 					Enabled: true,
 					Level:   "invalid",
 				},
-				Metrics: MetricsConfig{
+				Metrics: config.MetricsConfig{
 					Enabled: true,
 				},
 			},
@@ -356,12 +359,12 @@ func TestObservabilityConfig(t *testing.T) {
 		},
 		{
 			name: "empty log level (should be valid)",
-			config: ObservabilityConfig{
-				Logging: LoggingConfig{
+			config: config.ObservabilityConfig{
+				Logging: config.LoggingConfig{
 					Enabled: true,
 					Level:   "",
 				},
-				Metrics: MetricsConfig{
+				Metrics: config.MetricsConfig{
 					Enabled: true,
 				},
 			},
@@ -382,148 +385,4 @@ func TestObservabilityConfig(t *testing.T) {
 	}
 }
 
-func TestClientObservability(t *testing.T) {
-	// Test client with observability enabled
-	config := Config{
-		Storage: StorageConfig{
-			Type: "memory",
-		},
-		Cache: CacheConfig{
-			Enabled: true,
-			TTL:     Duration(5 * time.Minute),
-			MaxSize: 100,
-		},
-		Observability: ObservabilityConfig{
-			Logging: LoggingConfig{
-				Enabled: true,
-				Level:   "debug",
-			},
-			Metrics: MetricsConfig{
-				Enabled: true,
-			},
-		},
-	}
-
-	client, err := NewClient(config)
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-	defer client.Close()
-
-	ctx := context.Background()
-
-	// Test flag operations with observability
-	flag := FeatureFlag{
-		Key:         "test-flag",
-		Enabled:     true,
-		Description: "Test flag",
-	}
-
-	// Set flag
-	err = client.SetFlag(ctx, flag)
-	if err != nil {
-		t.Errorf("failed to set flag: %v", err)
-	}
-
-	// Check flag
-	enabled, err := client.IsEnabled(ctx, "test-flag")
-	if err != nil {
-		t.Errorf("failed to check flag: %v", err)
-	}
-	if !enabled {
-		t.Error("expected flag to be enabled")
-	}
-
-	// Get flag
-	retrievedFlag, err := client.GetFlag(ctx, "test-flag")
-	if err != nil {
-		t.Errorf("failed to get flag: %v", err)
-	}
-	if retrievedFlag.Key != "test-flag" {
-		t.Errorf("expected flag key 'test-flag', got %s", retrievedFlag.Key)
-	}
-
-	// Test health check
-	err = client.HealthCheck(ctx)
-	if err != nil {
-		t.Errorf("health check failed: %v", err)
-	}
-
-	// Get metrics
-	metrics := client.GetMetrics()
-	if metrics.FlagChecks == 0 {
-		t.Error("expected non-zero flag checks in metrics")
-	}
-
-	// Delete flag
-	err = client.DeleteFlag(ctx, "test-flag")
-	if err != nil {
-		t.Errorf("failed to delete flag: %v", err)
-	}
-
-	// Test error scenarios
-	_, err = client.GetFlag(ctx, "")
-	if err == nil {
-		t.Error("expected error for empty flag key")
-	}
-
-	// Test graceful degradation
-	enabled, err = client.IsEnabled(ctx, "non-existent-flag")
-	if err != nil {
-		t.Errorf("unexpected error for non-existent flag: %v", err)
-	}
-	if enabled {
-		t.Error("expected non-existent flag to be disabled")
-	}
-}
-
-func TestClientObservabilityDisabled(t *testing.T) {
-	// Test client with observability disabled
-	config := Config{
-		Storage: StorageConfig{
-			Type: "memory",
-		},
-		Observability: ObservabilityConfig{
-			Logging: LoggingConfig{
-				Enabled: false,
-			},
-			Metrics: MetricsConfig{
-				Enabled: false,
-			},
-		},
-	}
-
-	client, err := NewClient(config)
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-	defer client.Close()
-
-	ctx := context.Background()
-
-	// Test basic operations still work
-	flag := FeatureFlag{
-		Key:         "test-flag",
-		Enabled:     true,
-		Description: "Test flag",
-	}
-
-	err = client.SetFlag(ctx, flag)
-	if err != nil {
-		t.Errorf("failed to set flag: %v", err)
-	}
-
-	enabled, err := client.IsEnabled(ctx, "test-flag")
-	if err != nil {
-		t.Errorf("failed to check flag: %v", err)
-	}
-	if !enabled {
-		t.Error("expected flag to be enabled")
-	}
-
-	// Metrics should be empty
-	metrics := client.GetMetrics()
-	if metrics.FlagChecks != 0 {
-		t.Error("expected zero flag checks when metrics disabled")
-	}
-}
+// Note: Client integration tests are in the client package

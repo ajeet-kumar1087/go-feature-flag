@@ -5,13 +5,15 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/core"
 )
 
 func TestCache_BasicOperations(t *testing.T) {
 	cache := NewCache(10, 5*time.Minute)
 	defer cache.Close()
 
-	flag := &FeatureFlag{
+	flag := &core.FeatureFlag{
 		Key:         "test-flag",
 		Enabled:     true,
 		Description: "Test flag",
@@ -48,7 +50,7 @@ func TestCache_TTLExpiration(t *testing.T) {
 	cache := NewCache(10, 100*time.Millisecond)
 	defer cache.Close()
 
-	flag := &FeatureFlag{
+	flag := &core.FeatureFlag{
 		Key:     "test-flag",
 		Enabled: true,
 	}
@@ -78,7 +80,7 @@ func TestCache_LRUEviction(t *testing.T) {
 
 	// Fill cache to capacity
 	for i := 1; i <= 3; i++ {
-		flag := &FeatureFlag{
+		flag := &core.FeatureFlag{
 			Key:     fmt.Sprintf("flag-%d", i),
 			Enabled: true,
 		}
@@ -95,7 +97,7 @@ func TestCache_LRUEviction(t *testing.T) {
 	}
 
 	// Add one more flag - should evict the least recently used (flag-1)
-	flag4 := &FeatureFlag{
+	flag4 := &core.FeatureFlag{
 		Key:     "flag-4",
 		Enabled: true,
 	}
@@ -126,7 +128,7 @@ func TestCache_UpdateExisting(t *testing.T) {
 	defer cache.Close()
 
 	// Set initial flag
-	flag1 := &FeatureFlag{
+	flag1 := &core.FeatureFlag{
 		Key:         "test-flag",
 		Enabled:     false,
 		Description: "Initial",
@@ -134,7 +136,7 @@ func TestCache_UpdateExisting(t *testing.T) {
 	cache.Set("test-flag", flag1)
 
 	// Update the flag
-	flag2 := &FeatureFlag{
+	flag2 := &core.FeatureFlag{
 		Key:         "test-flag",
 		Enabled:     true,
 		Description: "Updated",
@@ -162,7 +164,7 @@ func TestCache_Clear(t *testing.T) {
 
 	// Add multiple flags
 	for i := 1; i <= 5; i++ {
-		flag := &FeatureFlag{
+		flag := &core.FeatureFlag{
 			Key:     fmt.Sprintf("flag-%d", i),
 			Enabled: true,
 		}
@@ -207,7 +209,7 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 
 			for j := 0; j < numOperations; j++ {
 				key := fmt.Sprintf("flag-%d-%d", goroutineID, j)
-				flag := &FeatureFlag{
+				flag := &core.FeatureFlag{
 					Key:     key,
 					Enabled: j%2 == 0,
 				}
@@ -242,7 +244,7 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 	wg.Wait()
 
 	// Cache should still be functional
-	testFlag := &FeatureFlag{
+	testFlag := &core.FeatureFlag{
 		Key:     "final-test",
 		Enabled: true,
 	}
@@ -258,7 +260,7 @@ func TestCache_ZeroTTL(t *testing.T) {
 	cache := NewCache(10, 0) // No TTL
 	defer cache.Close()
 
-	flag := &FeatureFlag{
+	flag := &core.FeatureFlag{
 		Key:     "test-flag",
 		Enabled: true,
 	}
@@ -279,7 +281,7 @@ func TestCache_ZeroMaxSize(t *testing.T) {
 
 	// Add many flags
 	for i := 0; i < 1000; i++ {
-		flag := &FeatureFlag{
+		flag := &core.FeatureFlag{
 			Key:     fmt.Sprintf("flag-%d", i),
 			Enabled: true,
 		}
@@ -307,7 +309,7 @@ func TestCache_ExpiredItemCleanup(t *testing.T) {
 
 	// Add flags that will expire
 	for i := 0; i < 5; i++ {
-		flag := &FeatureFlag{
+		flag := &core.FeatureFlag{
 			Key:     fmt.Sprintf("flag-%d", i),
 			Enabled: true,
 		}

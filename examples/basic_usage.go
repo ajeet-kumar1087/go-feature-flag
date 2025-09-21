@@ -9,14 +9,17 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ajeet-kumar1087/go-feature-flag/featureflag"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/client"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/config"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/core"
 )
 
 func main() {
 	fmt.Println("=== Basic Feature Flag Usage ===")
 
 	// Create client with default configuration (in-memory storage, caching enabled)
-	client, err := featureflag.NewClientWithDefaults()
+	cfg := config.DefaultConfig()
+	client, err := client.NewClient(cfg)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
@@ -25,7 +28,7 @@ func main() {
 	ctx := context.Background()
 
 	// Create some feature flags
-	flags := []featureflag.FeatureFlag{
+	flags := []core.FeatureFlag{
 		{
 			Key:         "new-ui",
 			Enabled:     true,

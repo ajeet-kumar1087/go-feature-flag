@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/config"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/core"
 )
 
 func BenchmarkCache_Get(b *testing.B) {
@@ -13,7 +16,7 @@ func BenchmarkCache_Get(b *testing.B) {
 
 	// Pre-populate cache
 	for i := 0; i < 100; i++ {
-		flag := &FeatureFlag{
+		flag := &core.FeatureFlag{
 			Key:     fmt.Sprintf("flag-%d", i),
 			Enabled: i%2 == 0,
 		}
@@ -39,7 +42,7 @@ func BenchmarkCache_Set(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			flag := &FeatureFlag{
+			flag := &core.FeatureFlag{
 				Key:     fmt.Sprintf("flag-%d", i),
 				Enabled: i%2 == 0,
 			}
@@ -51,20 +54,20 @@ func BenchmarkCache_Set(b *testing.B) {
 
 func BenchmarkCachedStore_Get_CacheHit(b *testing.B) {
 	mockStore := NewMockStore()
-	cacheConfig := CacheConfig{
+	cacheConfig := config.CacheConfig{
 		Enabled: true,
-		TTL:     Duration(5 * time.Minute),
+		TTL:     config.Duration(5 * time.Minute),
 		MaxSize: 1000,
 	}
 
-	cachedStore := NewCachedStore(mockStore, cacheConfig)
+	cachedStore := NewStore(mockStore, cacheConfig)
 	defer cachedStore.Close()
 
 	ctx := context.Background()
 
 	// Pre-populate cache
 	for i := 0; i < 100; i++ {
-		flag := FeatureFlag{
+		flag := core.FeatureFlag{
 			Key:     fmt.Sprintf("flag-%d", i),
 			Enabled: i%2 == 0,
 		}
@@ -84,20 +87,20 @@ func BenchmarkCachedStore_Get_CacheHit(b *testing.B) {
 
 func BenchmarkCachedStore_Get_CacheMiss(b *testing.B) {
 	mockStore := NewMockStore()
-	cacheConfig := CacheConfig{
+	cacheConfig := config.CacheConfig{
 		Enabled: true,
-		TTL:     Duration(5 * time.Minute),
+		TTL:     config.Duration(5 * time.Minute),
 		MaxSize: 1000,
 	}
 
-	cachedStore := NewCachedStore(mockStore, cacheConfig)
+	cachedStore := NewStore(mockStore, cacheConfig)
 	defer cachedStore.Close()
 
 	ctx := context.Background()
 
 	// Pre-populate underlying store (not cache)
 	for i := 0; i < 100; i++ {
-		flag := FeatureFlag{
+		flag := core.FeatureFlag{
 			Key:     fmt.Sprintf("flag-%d", i),
 			Enabled: i%2 == 0,
 		}
@@ -117,13 +120,13 @@ func BenchmarkCachedStore_Get_CacheMiss(b *testing.B) {
 
 func BenchmarkCachedStore_Set(b *testing.B) {
 	mockStore := NewMockStore()
-	cacheConfig := CacheConfig{
+	cacheConfig := config.CacheConfig{
 		Enabled: true,
-		TTL:     Duration(5 * time.Minute),
+		TTL:     config.Duration(5 * time.Minute),
 		MaxSize: 1000,
 	}
 
-	cachedStore := NewCachedStore(mockStore, cacheConfig)
+	cachedStore := NewStore(mockStore, cacheConfig)
 	defer cachedStore.Close()
 
 	ctx := context.Background()
@@ -132,7 +135,7 @@ func BenchmarkCachedStore_Set(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			flag := FeatureFlag{
+			flag := core.FeatureFlag{
 				Key:     fmt.Sprintf("flag-%d", i),
 				Enabled: i%2 == 0,
 			}

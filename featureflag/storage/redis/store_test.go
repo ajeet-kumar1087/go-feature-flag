@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/config"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/core"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -151,7 +153,7 @@ func createMockRedisStore() *RedisStore {
 func TestNewRedisStore(t *testing.T) {
 	tests := []struct {
 		name        string
-		config      *RedisConfig
+		config      *config.RedisConfig
 		expectError bool
 	}{
 		{
@@ -161,7 +163,7 @@ func TestNewRedisStore(t *testing.T) {
 		},
 		{
 			name: "invalid config - empty addr",
-			config: &RedisConfig{
+			config: &config.RedisConfig{
 				Addr: "",
 				DB:   0,
 			},
@@ -169,7 +171,7 @@ func TestNewRedisStore(t *testing.T) {
 		},
 		{
 			name: "invalid config - invalid DB",
-			config: &RedisConfig{
+			config: &config.RedisConfig{
 				Addr: "localhost:6379",
 				DB:   16,
 			},
@@ -179,7 +181,7 @@ func TestNewRedisStore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store, err := NewRedisStore(tt.config)
+			store, err := NewStore(tt.config)
 
 			if tt.expectError {
 				if err == nil {
@@ -206,7 +208,7 @@ func TestRedisStore_Get(t *testing.T) {
 	ctx := context.Background()
 
 	// Test data
-	testFlag := FeatureFlag{
+	testFlag := core.FeatureFlag{
 		Key:         "test-flag",
 		Enabled:     true,
 		Description: "Test flag",
@@ -222,7 +224,7 @@ func TestRedisStore_Get(t *testing.T) {
 		key         string
 		setupMock   func()
 		expectError bool
-		expectFlag  *FeatureFlag
+		expectFlag  *core.FeatureFlag
 	}{
 		{
 			name:        "successful get",
@@ -291,13 +293,13 @@ func TestRedisStore_Set(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		flag        FeatureFlag
+		flag        core.FeatureFlag
 		setupMock   func()
 		expectError bool
 	}{
 		{
 			name: "successful set",
-			flag: FeatureFlag{
+			flag: core.FeatureFlag{
 				Key:         "test-flag",
 				Enabled:     true,
 				Description: "Test flag",
@@ -307,7 +309,7 @@ func TestRedisStore_Set(t *testing.T) {
 		},
 		{
 			name: "invalid flag - empty key",
-			flag: FeatureFlag{
+			flag: core.FeatureFlag{
 				Key:     "",
 				Enabled: true,
 			},
@@ -316,7 +318,7 @@ func TestRedisStore_Set(t *testing.T) {
 		},
 		{
 			name: "redis error",
-			flag: FeatureFlag{
+			flag: core.FeatureFlag{
 				Key:         "test-flag",
 				Enabled:     true,
 				Description: "Test flag",
@@ -426,8 +428,8 @@ func TestRedisStore_GetAll(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup test data
-	flag1 := FeatureFlag{Key: "flag1", Enabled: true}
-	flag2 := FeatureFlag{Key: "flag2", Enabled: false}
+	flag1 := core.FeatureFlag{Key: "flag1", Enabled: true}
+	flag2 := core.FeatureFlag{Key: "flag2", Enabled: false}
 
 	flag1Data, _ := json.Marshal(flag1)
 	flag2Data, _ := json.Marshal(flag2)
@@ -565,7 +567,7 @@ func TestRedisStore_ConcurrentAccess(t *testing.T) {
 			go func(id int) {
 				defer wg.Done()
 				for j := 0; j < numOperations; j++ {
-					flag := FeatureFlag{
+					flag := core.FeatureFlag{
 						Key:         fmt.Sprintf("concurrent-flag-%d-%d", id, j),
 						Enabled:     j%2 == 0,
 						Description: fmt.Sprintf("Concurrent test flag %d-%d", id, j),
@@ -584,7 +586,7 @@ func TestRedisStore_ConcurrentAccess(t *testing.T) {
 	// Test concurrent reads
 	t.Run("concurrent reads", func(t *testing.T) {
 		// First, set up some test data
-		testFlag := FeatureFlag{
+		testFlag := core.FeatureFlag{
 			Key:         "read-test-flag",
 			Enabled:     true,
 			Description: "Flag for concurrent read testing",
@@ -645,7 +647,7 @@ func TestRedisStore_MetadataHandling(t *testing.T) {
 	store := createMockRedisStore()
 	ctx := context.Background()
 
-	testFlag := FeatureFlag{
+	testFlag := core.FeatureFlag{
 		Key:         "metadata-test",
 		Enabled:     true,
 		Description: "Flag with metadata",
@@ -689,12 +691,12 @@ func TestRedisStore_Integration(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	config := &RedisConfig{
+	config := &config.RedisConfig{
 		Addr: "localhost:6379",
 		DB:   1, // Use DB 1 for testing
 	}
 
-	store, err := NewRedisStore(config)
+	store, err := NewStore(config)
 	if err != nil {
 		t.Skipf("Redis not available for integration test: %v", err)
 	}
@@ -703,7 +705,7 @@ func TestRedisStore_Integration(t *testing.T) {
 	ctx := context.Background()
 
 	// Test basic operations
-	testFlag := FeatureFlag{
+	testFlag := core.FeatureFlag{
 		Key:         "integration-test",
 		Enabled:     true,
 		Description: "Integration test flag",
