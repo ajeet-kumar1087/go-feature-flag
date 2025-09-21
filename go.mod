@@ -2,7 +2,12 @@ module github.com/ajeet-kumar1087/go-feature-flag
 
 go 1.23.3
 
-require github.com/redis/go-redis/v9 v9.10.0
+require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
+	github.com/lib/pq v1.10.9
+	github.com/redis/go-redis/v9 v9.10.0
+	gopkg.in/yaml.v3 v3.0.1
+)
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

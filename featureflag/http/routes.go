@@ -1,10 +1,12 @@
-package featureflag
+package http
 
 import (
 	"net/http"
+
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/core"
 )
 
-func SetupRoutes(store FlagStore) *http.ServeMux {
+func SetupRoutes(store core.Store) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Feature flag endpoints

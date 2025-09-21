@@ -1,12 +1,14 @@
-package featureflag
+package http
 
 import (
 	"encoding/json"
 	"net/http"
 	"strings"
+
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/core"
 )
 
-func GetFlagHandler(store FlagStore) http.HandlerFunc {
+func GetFlagHandler(store core.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -33,9 +35,9 @@ func GetFlagHandler(store FlagStore) http.HandlerFunc {
 	}
 }
 
-func SetFlagHandler(store FlagStore) http.HandlerFunc {
+func SetFlagHandler(store core.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var flag FeatureFlag
+		var flag core.FeatureFlag
 		if err := json.NewDecoder(r.Body).Decode(&flag); err != nil {
 			http.Error(w, "invalid input", http.StatusBadRequest)
 			return
@@ -48,9 +50,9 @@ func SetFlagHandler(store FlagStore) http.HandlerFunc {
 	}
 }
 
-func EnableFlagHandler(store FlagStore) http.HandlerFunc {
+func EnableFlagHandler(store core.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var flag FeatureFlag
+		var flag core.FeatureFlag
 		if err := json.NewDecoder(r.Body).Decode(&flag); err != nil {
 			http.Error(w, "invalid input", http.StatusBadRequest)
 			return
@@ -63,14 +65,14 @@ func EnableFlagHandler(store FlagStore) http.HandlerFunc {
 	}
 }
 
-func GetAllFlagsHandler(store FlagStore) http.HandlerFunc {
+func GetAllFlagsHandler(store core.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		flags, err := store.GetAll()
+		flags, err := store.GetAll(r.Context())
 		if err != nil {
 			http.Error(w, "Error retrieving flags", http.StatusInternalServerError)
 			return
@@ -79,7 +81,7 @@ func GetAllFlagsHandler(store FlagStore) http.HandlerFunc {
 	}
 }
 
-func DeleteFlagHandler(store FlagStore) http.HandlerFunc {
+func DeleteFlagHandler(store core.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
