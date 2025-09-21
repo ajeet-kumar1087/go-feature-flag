@@ -323,7 +323,7 @@ SELECT pg_reload_conf();
 
 ```go
 // Export from memory store
-memoryStore := featureflag.NewMemoryStore()
+memoryStore := featureflag.NewStore()
 flags, err := memoryStore.GetAll(ctx)
 if err != nil {
     log.Fatal(err)

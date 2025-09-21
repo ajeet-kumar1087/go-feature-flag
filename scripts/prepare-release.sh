@@ -15,7 +15,7 @@ if [ ! -f "go.mod" ]; then
 fi
 
 echo "📋 Step 1: Running comprehensive test suite..."
-go test ./featureflag -v -race -coverprofile=coverage.out
+go test ./... -v -race -coverprofile=coverage.out
 
 echo "📊 Step 2: Checking test coverage..."
 COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
@@ -33,7 +33,7 @@ go vet ./...
 staticcheck ./...
 
 echo "🎯 Step 4: Running performance benchmarks..."
-go test ./featureflag -bench=. -benchmem -run=^$ > benchmarks.txt
+go test ./... -bench=. -benchmem -run=^$ > benchmarks.txt
 echo "Benchmark results saved to benchmarks.txt"
 
 echo "📦 Step 5: Checking module dependencies..."

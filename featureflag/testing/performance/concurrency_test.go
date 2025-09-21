@@ -13,6 +13,7 @@ import (
 	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/client"
 	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/config"
 	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/core"
+	"github.com/ajeet-kumar1087/go-feature-flag/featureflag/storage/memory"
 )
 
 // TestClient_ConcurrentIsEnabled tests concurrent IsEnabled calls
@@ -178,7 +179,7 @@ func TestClient_ConcurrentReadWrite(t *testing.T) {
 
 // TestMemoryStore_ConcurrentOperations tests memory store thread safety
 func TestMemoryStore_ConcurrentOperations(t *testing.T) {
-	store := config.NewMemoryStore()
+	store := memory.NewStore()
 	defer store.Close()
 
 	ctx := context.Background()
