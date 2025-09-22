@@ -91,6 +91,12 @@ type (
 	// ObservabilityConfig defines logging and metrics configuration
 	ObservabilityConfig = config.ObservabilityConfig
 
+	// LoggingConfig defines logging configuration
+	LoggingConfig = config.LoggingConfig
+
+	// MetricsConfig defines metrics collection configuration
+	MetricsConfig = config.MetricsConfig
+
 	// Duration is a wrapper around time.Duration that supports JSON/YAML marshaling
 	Duration = config.Duration
 )

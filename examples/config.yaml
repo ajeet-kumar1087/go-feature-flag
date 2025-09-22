@@ -1,0 +1,31 @@
+storage:
+  type: redis
+  redis:
+    addr: localhost:6379
+    db: 0
+
+cache:
+  enabled: true
+  ttl: 10m
+  max_size: 1000
+
+observability:
+  logging:
+    enabled: true
+    level: info
+  metrics:
+    enabled: true
+
+default_flags:
+  - key: maintenance-mode
+    enabled: false
+    description: Global maintenance mode
+    metadata:
+      priority: critical
+      team: platform
+  - key: new-feature-gate
+    enabled: true
+    description: Master gate for new features
+    metadata:
+      rollout: 100%
+      version: v2.0
