@@ -58,7 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complete API documentation with Go doc comments
 - Usage examples for all storage backends
 - Advanced configuration examples
-- Migration guide from HTTP service approach
 - Integration testing guide
 - Performance benchmarking guide
 
